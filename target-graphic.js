@@ -19,8 +19,8 @@ class TargetGraphic {
     constructor(element) {
         this.target = document.getElementById(element);
         this.ctx = this.target.getContext('2d');    
-        this.scale = 5.0;
-        this.gridSize = 7.0;
+        this.scale = 4.0;
+        this.gridSize = 15.0;
         this.bulletSize = 6.0; // mm
         this.mainColor = '#7080A1';
     }

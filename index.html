@@ -16,7 +16,7 @@
 	<body>
 		<h1>The Perfect Shot</h2>
     	<p>We have perfect powder, no wind and no human error. This represents just the inherent imprecision of a firearm.</p>
-		<p>Below is my standard 100m target. The grid size is 7 mm.</p>
+		<p>Below is my standard 200m target. The grid size is 14 mm. One square MOA is a four by four divisions.</p>
     	<p><canvas width="800" height="600"  id="target"></canvas></p>
 	
 		<input type="checkbox" id="show_atc"   onclick="refresh()" /> Show what ATC is for the whole distribution for the given &sigma;</br>
@@ -135,8 +135,8 @@
 
 	function refresh() {
 		if(tgt == null) tgt = new TargetGraphic('target');
-		tgt.setGridSize(7);
-		tgt.setScale(5);
+		tgt.setGridSize(14);
+		tgt.setScale(4);
 		tgt.setCenter(400.5, 300.5);
 		tgt.makeTarget();
 		let sigma = parseFloat(document.getElementById('sigma').value);
