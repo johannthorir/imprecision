@@ -1,356 +1,170 @@
-	<!DOCTYPE HTML>
+<!DOCTYPE HTML>
 <html>
-  <head>
-    <style>
-      body,table,td {
-        margin: 10px;
-        padding: 10px;
-        font-family : sans-serif;
-	font-size : 11pt;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>The Perfect Shot</h2>
-    <p>We have perfect powder, no wind and no human error. This represents just the inherent imprecision of a firearm.</p>
-
-    <p><canvas width="800" height="600"  id="target"></canvas></p>
-
-    <script>
-
-    	// Normal distribution generator.
-		function Normal(mean, stdev) {
-			var y2;
-			var use_last = false;
-
-			return function() {
-				var y1;
-
-				if(use_last) {
-					y1 = y2;
-					use_last = false;
-				}
-				else {
-					var x1;
-					var x2;
-					var w;
-					do {
-						x1 = 2.0 * Math.random() - 1.0;
-						x2 = 2.0 * Math.random() - 1.0;
-						w = x1 * x1 + x2 * x2;
-					} while ( w >= 1.0 );
-
-					w = Math.sqrt( (-2.0 * Math.log(w) ) / w );
-					y1 = x1 * w;
-					y2 = x2 * w;
-					use_last = true;
-				}
-
-				return mean + stdev * y1;
+  	<head>
+    	<style>
+			body,table,td {
+				margin: 10px;
+				padding: 10px;
+				font-family : sans-serif;
+				font-size : 11pt;
 			}
+    	</style>
+		<script src="target-graphic.js"></script>
+    	  
+	</head>
+  
+	<body>
+		<h1>The Perfect Shot</h2>
+    	<p>We have perfect powder, no wind and no human error. This represents just the inherent imprecision of a firearm.</p>
+		<p>Below is my standard 300m target. The grid size is 21 mm.</p>
+    	<p><canvas width="800" height="600"  id="target"></canvas></p>
+	
+		<input type="checkbox" id="show_atc"   onclick="refresh()" /> Show what ATC is for the whole distribution for the given &sigma;</br>
+		<input type="checkbox" id="show_probs" onclick="refresh()" /> Show radius for <select id="prob_select" onchange="refresh()">
+			<option value="0.5">CEP (50%)</option>
+    		<option value="0.95">R95</option>
+			<option value="0.99">99%</option>
+			<option value="0.999" selected>99.9%</option>
+			<option value="0.9999">99.99%</option>
+			<option value="0.99999">99.999%</option>
+			<option value="0.999999">99.9999%</option>
+		</select> probability of any given shot hit. <br/>
+    	<input type="checkbox" id="show_stats" checked onclick="refresh()"/> Show group statistics<br />
+    	Shots: <input type="text" id="group" value="5" size="4" style="text-align:right;" />
+    	&sigma;: <input type="text" id="sigma" value="18" size="4" style="text-align:right;" onchange="refresh()"/>mm<br />
+    	Average to center is about 25% more than the sigma.<br/>
+    	<p><button onClick="DoGroup(
+      		parseInt(document.getElementById('group').value),
+			  parseFloat(document.getElementById('sigma').value))">Draw a random group</button></p>	
+  	</body>
+  <script>
+	// Normal distribution generator.
+	function Normal(mean, stdev) {
+		var y2;
+		var use_last = false;
+
+		return function() {
+			var y1;
+			if(use_last) {
+				y1 = y2;
+				use_last = false;
+			} 
+			else {
+				var x1;
+				var x2;
+				var w;
+				do {
+					x1 = 2.0 * Math.random() - 1.0;
+					x2 = 2.0 * Math.random() - 1.0;
+					w = x1 * x1 + x2 * x2;
+				} while(w >= 1.0);
+
+				w = Math.sqrt( (-2.0 * Math.log(w) ) / w );
+				y1 = x1 * w;
+				y2 = x2 * w;
+				use_last = true;
+			}
+			return mean + stdev * y1;
+		}
+	}
+
+	let tgt = new TargetGraphic('target');
+
+	// calculate the statistics for the group
+	function calculateStats(shots) {
+		var avg = new shot(0,0);
+		var min = new shot(0,0);
+		var max = new shot(0,0);
+		var M = new shot(shots[0].x, shots[0].y);
+		var Q = new shot(0,0);
+
+		for(var i=0; i<shots.length; i++) {
+			var s = shots[i];
+			avg.x += s.x / shots.length;
+			avg.y += s.y / shots.length;
+			Q.x = Q.x + (i * (s.x - M.x)*(s.x - M.x))/(i+1);
+			Q.y = Q.y + (i * (s.y - M.y)*(s.y - M.y))/(i+1);
+			M.x = M.x + (s.x - M.x)/(i+1)
+			M.y = M.y + (s.y - M.y)/(i+1)
+
+			if(s.x < min.x) min.x = s.x;
+			if(s.x > max.x) max.x = s.x;
+			if(s.y < min.y)	min.y = s.y;
+			if(s.y > max.y)	max.y = s.y;
 		}
 
-		// shot object.
-		function shot(x,y) {
-			this.x = x;
-			this.y = y;
-			this.distance = function(other)	{
-				return Math.sqrt( Math.pow(this.x - other.x, 2) + Math.pow(this.y - other.y, 2));
-			}
-
-			this.draw = function(ctx) {
-				makeBulletHole(ctx, this.x, this.y);
-			}
+		if(shots.length > 1) {
+			Q.x = Math.sqrt(Q.x/(shots.length-1));
+			Q.y = Math.sqrt(Q.y/(shots.length-1));
+		}
+		else {
+			Q.x = 0;
+			Q.y = 0;
 		}
 
-
-		// set up display.
-		var gridsize = 21; // mm
-		var scale = 2.5;
-		var cx = 400.5;
-		var cy = 300.5;
-
-		// draw the target
-		function makeTarget(ctx,  grid) {
-			ctx.strokeStyle = '#0A50A1';
-			ctx.lineWidth = 0.5;
-			grid *= scale;
-			ctx.beginPath();
-			for(i=-5; i<=5; i++) {
-				ctx.moveTo(cx - 5*grid, cy + i*grid);
-				ctx.lineTo(cx + 5*grid, cy + i*grid);
-
-				ctx.moveTo(cx + i*grid, cy - 5*grid);
-				ctx.lineTo(cx + i*grid, cy + 5*grid);
-
-			}
-			ctx.stroke();
-			var a = 2*grid / Math.sqrt(2);
-
-			ctx.fillStyle = '#0A50A1';
-			ctx.beginPath();
-			ctx.moveTo(cx, cy - a);
-			ctx.lineTo(cx + a, cy);
-			ctx.lineTo(cx, cy + a);
-			ctx.lineTo(cx - a, cy);
-			ctx.lineTo(cx, cy - a);
-			ctx.fill();
-
-			a /= 2;
-			ctx.fillStyle = '#FFFFFF';
-			ctx.beginPath();
-			ctx.moveTo(cx, cy - a);
-			ctx.lineTo(cx + a, cy);
-			ctx.lineTo(cx, cy + a);
-			ctx.lineTo(cx - a, cy);
-			ctx.lineTo(cx, cy - a);
-			ctx.fill();
-
-			ctx.font="12px Verdana";
-			ctx.fillStyle = 'rgba(0,0,0,1)';
-			ctx.fillText("Grid: ",   10,20);
-			ctx.fillText(Math.round(gridsize) + "mm", 60, 20);
-		}
-
-		// Radius from probability for normally distributed shots
-		// with sigma=1 both horizontally and vertically.
-		// Scales linearly with sigma.
-		function radiusFromProbability(probability)
-		{
-			return Math.sqrt(-2 * Math.log(1 - probability))
-		}
-
-
-		// Draw the probablity circle for the selected probability
-		function probabilities(ctx, sigma, prob_select) {
-
-		    ctx.fillStyle="rgba(50,0,0, 0.08)";
-		    ctx.strokeStyle="rgba(50,0,0,0.5)";
-
-			var nines = [
-				radiusFromProbability(0.5),
-				radiusFromProbability(0.95),
-				radiusFromProbability(0.99),
-				radiusFromProbability(0.999),
-				radiusFromProbability(0.9999),
-				radiusFromProbability(0.99999),
-				radiusFromProbability(0.999999)
-			];
-
-
-			ctx.beginPath();
-			ctx.arc(cx, cy, scale * sigma * nines[prob_select],0,Math.PI*2,true);
-			ctx.fill();
-			ctx.stroke();
-
-
-		}
-
-		// draw a bullet hole
-		function makeBulletHole(ctx, x, y) {
-			ctx.fillStyle = 'rgba(0,0,0,0.3)';
-			ctx.beginPath();
-			ctx.arc(cx + x * scale, cy + y*scale,3*scale,0,Math.PI*2,true)
-
-			ctx.fill();
-			ctx.fillStyle = 'rgba(0,0,0,0.8)';
-			ctx.beginPath();
-			ctx.arc(cx + x * scale, cy + y*scale,2.4*scale,0,Math.PI*2,true)
-
-			ctx.fill();
-		}
-
-		function drawATC(ctx, sigma) {
-		   ctx.strokeStyle = "#20FF20";
-		   ctx.lineWidth = 1.0;
-		   ctx.beginPath();
-		   ctx.arc(cx, cy, sigma * 1.253314137 * scale, 0, Math.PI*2, true);
-		   ctx.stroke();
-		}
-
-
-		// draw the statistics for the group.
-		function draw_stats(ctx, average, maxfrom, maxto, avgToCenter, min, max, stdev, draw_overlay) {
-			ctx.strokeStyle = "#ff8822";
-			ctx.lineWidth = 1.0;
-
-			var x = cx + average.x * scale;
-			var y = cy + average.y * scale;
-				var sizex = max.x - min.x;
-				var sizey = max.y - min.y;
-			if(draw_overlay) {
-				ctx.beginPath();
-				ctx.arc(x, y, avgToCenter*scale,0,Math.PI*2,true);
-				ctx.moveTo(x - 3*scale, y);
-				ctx.lineTo(x + 3*scale, y);
-				ctx.moveTo(x, y - 3*scale);
-				ctx.lineTo(x, y + 3*scale);
-
-				ctx.moveTo(cx + maxfrom.x * scale, cy + maxfrom.y * scale);
-				ctx.lineTo(cx + maxto.x * scale, cy + maxto.y * scale);
-
-
-				ctx.rect(cx + min.x*scale, cy + min.y * scale, sizex * scale, sizey * scale);
-				ctx.stroke();
-
-				ctx.beginPath(); ctx.arc(cx, cy, 3*scale, 0, Math.PI*2, true);ctx.stroke();
-				ctx.beginPath(); ctx.arc(cx, cy, 1.5*scale, 0, Math.PI*2, true); ctx.stroke();
-
-
-				if (!ctx.setLineDash)
-				    ctx.setLineDash = function () {}
-
-				ctx.save();
-
-				ctx.beginPath();
-				ctx.rect(cx + min.x*scale - 4*scale, cy + min.y * scale - 4*scale, sizex * scale + 8*scale, sizey * scale + 8*scale);
-				ctx.setLineDash([2,2]);
-				ctx.moveTo(x, y);
-				ctx.lineTo(cx ,cy);
-				ctx.stroke();
-
-				ctx.restore();
-
-			}
-
-			ctx.font="12px Verdana";
-			ctx.fillStyle = 'rgba(0,0,0,1)';
-			ctx.fillText("Max: ",    10, 40); ctx.fillText(Math.round(maxfrom.distance(maxto))  + "mm", 60, 40);
-			ctx.fillText("ATC: ",    10, 60); ctx.fillText(Math.round(avgToCenter*10)/10        + "mm", 60, 60);
-			ctx.fillText("Width: ",  10, 80); ctx.fillText(Math.round(sizex)                    + "mm", 60, 80);
-			ctx.fillText("Height: ", 10,100); ctx.fillText(Math.round(sizey)                    + "mm", 60, 100);
-			ctx.fillText("Vert:",    10,120); ctx.fillText(Math.round(average.y)                + "mm", 60, 120);
-			ctx.fillText("Horiz:",   10,140); ctx.fillText(Math.round(average.x)                + "mm", 60, 140);
-		    ctx.fillText("Sigma:",   10,160); ctx.fillText(Math.round(5*(stdev.x + stdev.y))/10 + "mm", 60,160);
-		}
-
-
-		// calculate the statistics for the group
-		function doStats(ctx, shots, draw_overlay) {
-			var avg = new shot(0,0);
-			var min = new shot(0,0);
-			var max = new shot(0,0);
-			var M = new shot(shots[0].x, shots[0].y);
-			var Q = new shot(0,0);
-
-			for(var i=0; i<shots.length; i++) {
-				var s = shots[i];
-				avg.x += s.x / shots.length;
-				avg.y += s.y / shots.length;
-				Q.x = Q.x + (i * (s.x - M.x)*(s.x - M.x))/(i+1);
-				Q.y = Q.y + (i * (s.y - M.y)*(s.y - M.y))/(i+1);
-				M.x = M.x + (s.x - M.x)/(i+1)
-				M.y = M.y + (s.y - M.y)/(i+1)
-
-				if(s.x < min.x) min.x = s.x;
-				if(s.x > max.x) max.x = s.x;
-				if(s.y < min.y)	min.y = s.y;
-				if(s.y > max.y)	max.y = s.y;
-			}
-			if(shots.length > 1)
-			{
-				Q.x = Math.sqrt(Q.x/(shots.length-1));
-				Q.y = Math.sqrt(Q.y/(shots.length-1));
-			}
-			else
-			{
-				Q.x = 0;
-				Q.y = 0;
-			}
-			var from;
-			var to;
-			var maxdist = 0;
-			var averageToCenter = 0;
-			for(var i=0; i<(shots.length-1); i++) {
-				for(var j=i+1; j<shots.length; j++) {
-					var d = shots[i].distance(shots[j]);
-					if(d > maxdist) {
-						maxdist = d;
-						from = i;
-						to   = j;
-					}
+		var from;
+		var to;
+		var maxdist = 0;
+		var averageToCenter = 0;
+		for(var i=0; i<(shots.length-1); i++) {
+			for(var j=i+1; j<shots.length; j++) {
+				var d = shots[i].distance(shots[j]);
+				if(d > maxdist) {
+					maxdist = d;
+					from = i;
+					to   = j;
 				}
 			}
-
-
-			for(var i=0; i<shots.length; i++)
-				averageToCenter += shots[i].distance(avg)/shots.length;
-
-			draw_stats(ctx, avg, shots[from], shots[to], averageToCenter, min, max, Q, draw_overlay);
 		}
 
-		var shots = [];
-
-		// Draw everything that should be drawn
-		function ReDraw(sigma, show_atc, show_probs, show_stats, prob_sel) {
-			var target = document.getElementById('target');
-			var ctx = target.getContext('2d');
- 			ctx.clearRect(0, 0, target.width, target.height);
-
-			// ctx.translate(cx,cy);
-
-			makeTarget(ctx, gridsize)
-
-			if(show_atc)
-			    drawATC(ctx, sigma);
-
-			if(show_probs)
-				probabilities(ctx, sigma, prob_sel);
-
-			for(var i=0; i<shots.length; i++) {
-				shots[i].draw(ctx);
-			}
+		for(var i=0; i<shots.length; i++) averageToCenter += shots[i].distance(avg)/shots.length;
+		return {
+			average         : avg,
+			maxfrom         : shots[from],
+			maxto           : shots[to],
+			averageToCenter : averageToCenter,
+			min             : min,
+			max             : max, 
+			stdev           : Q
+		};
+	}
 
 
-			doStats(ctx, shots, show_stats);
-		}
 
-		// Refresh the display
-		function refresh()
-		{
-			ReDraw(parseFloat(document.getElementById('sigma').value),
-			  document.getElementById('show_atc').checked,
-			  document.getElementById('show_probs').checked,
-			  document.getElementById('show_stats').checked,
-	  			document.getElementById('prob_select').selectedIndex);
-		}
+	var shots = [];
+
+	function refresh() {
+		if(tgt == null) tgt = new TargetGraphic('target');
+		tgt.setGridSize(21);
+		tgt.setScale(2.5);
+		tgt.setCenter(400.5, 300.5);
+		tgt.makeTarget();
+		let sigma = parseFloat(document.getElementById('sigma').value);
+		let prob  = parseFloat(document.getElementById('prob_select').value);
+		tgt.showOverlay = document.getElementById('show_stats').checked;
+
+		if(document.getElementById('show_atc').checked)  tgt.drawATC(sigma);
+		if(document.getElementById('show_probs').checked) tgt.drawProbabilities(sigma, prob)
+
+		for(var i=0; i<shots.length; i++) tgt.drawBulletHole(shots[i].x, shots[i].y);
+		if(tgt.showOverlay) {
+			tgt.drawStats(calculateStats(shots))
+		}   
+	}
 
 		// Generate a group
-		function DoGroup(count, sigma) {
-			var group = count;
-			var wind = Normal(-28, 12);
-			var xvar = Normal(0, sigma);
-			var yvar = Normal(0, sigma);
-			shots = [];
-
-			for(var i=0; i<group; i++) {
-				shots[i] = new shot(xvar(), yvar());
-			}
-			refresh();
-
-		}
+	function DoGroup(count, sigma) {
+		var group = count;
+		// var wind = Normal(-28, 12);
+		var xvar = Normal(0, sigma);
+		var yvar = Normal(0, sigma);
+		shots = [];
+		for(var i=0; i<group; i++) shots[i] = new shot(xvar(), yvar());
+		
+		refresh();
+	}
 
 
-    </script>
-    <input type="checkbox" id="show_atc"   onclick="refresh()" /> Show what ATC is for the whole distribution for the given &sigma;</br>
-    <input type="checkbox" id="show_probs" onclick="refresh()" /> Show radius for <select id="prob_select" onchange="refresh()">
-    <option>CEP (50%)</option>
-    <option>R95</option>
-    <option>99%</option>
-    <option selected>99.9%</option>
-    <option>99.99%</option>
-    <option>99.999%</option>
-    <option>99.9999%</option>
-    </select> probability of any given shot hit. <br/>
-    <input type="checkbox" id="show_stats" checked onclick="refresh()"/> Show group statistics<br />
-    Shots: <input type="text" id="group" value="5" size="4" style="text-align:right;" />
-    &sigma;: <input type="text" id="sigma" value="18" size="4" style="text-align:right;" onchange="refresh()"/>mm<br />
-    Average to center is about 25% more than the sigma.<br/>
-    <button onClick="DoGroup(
-      parseInt(document.getElementById('group').value),
-      parseFloat(document.getElementById('sigma').value))">Draw a random group</button>
-  </body>
-  <script>
   	DoGroup(parseInt(document.getElementById('group').value), parseFloat(document.getElementById('sigma').value));
   </script>
 </html>
