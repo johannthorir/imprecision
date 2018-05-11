@@ -37,7 +37,7 @@ class TargetGraphic {
         this.ctx.save();
         this.ctx.strokeStyle = this.mainColor;
         this.ctx.translate(this.cx, this.cy);        
-        this.ctx.scale(this.scale, this.scale);
+        this.ctx.scale(this.scale, -this.scale);
         this.ctx.lineWidth = 1.25 / this.scale;
         let grid = 
 
@@ -56,7 +56,7 @@ class TargetGraphic {
     drawCenter(fillStyle, size) {
         this.ctx.save();
         this.ctx.translate(this.cx, this.cy);
-        this.ctx.scale(this.scale, this.scale);
+        this.ctx.scale(this.scale, -this.scale);
         this.ctx.rotate(Math.PI / 4);
 
         this.ctx.fillStyle = fillStyle;
@@ -94,7 +94,7 @@ class TargetGraphic {
     drawBulletHole(x, y) {
         this.ctx.save();
         this.ctx.translate(this.cx, this.cy);
-        this.ctx.scale(this.scale, this.scale);
+        this.ctx.scale(this.scale, -this.scale);
         this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
         this.ctx.beginPath();
         this.ctx.arc(x, y, 0.5 * this.bulletSize, 0, Math.PI*2, true)
@@ -116,7 +116,7 @@ class TargetGraphic {
     drawATC(sigma) {
         this.ctx.save();
         this.ctx.translate(this.cx, this.cy);
-        this.ctx.scale(this.scale, this.scale);
+        this.ctx.scale(this.scale, -this.scale);
         this.ctx.strokeStyle = "#20FF20";
         this.ctx.lineWidth = 1.0/this.scale;
         this.strokeCircle(0, 0, sigma * 1.253314137);
@@ -127,7 +127,7 @@ class TargetGraphic {
     drawStats(stats)  {
         this.ctx.save();
         this.ctx.translate(this.cx, this.cy);
-        this.ctx.scale(this.scale, this.scale);
+        this.ctx.scale(this.scale, -this.scale);
 
         this.ctx.strokeStyle = "#ff8822";
         this.ctx.lineWidth = 1.0 / this.scale;

@@ -47,9 +47,9 @@
 				<tr><td>ATC:</td>   <td class="value" id="atc"></td></tr>
 				<tr><td>Width:</td> <td class="value" id="width"></td></tr>
 				<tr><td>Height:</td><td class="value" id="height"></td></tr>
-				<tr><td>Vert:</td>  <td class="value" id="vert"></td></tr>
-				<tr><td>Horiz:</td> <td class="value" id="horiz"></td></tr>
-				<tr><td>Sigma:</td> <td class="value" id="estimated_sigma"></td></tr>
+				<tr><td>Vertical bias:</td>  <td class="value" id="vert"></td></tr>
+				<tr><td>Horizontal bias:</td> <td class="value" id="horiz"></td></tr>
+				<tr><td>Estimated &sigma;:</td> <td class="value" id="estimated_sigma"></td></tr>
 				
 			</table>
 			<canvas width="600" height="600"  id="target"></canvas>
@@ -189,7 +189,7 @@
 		document.getElementById("atc").innerText = `${stats.averageToCenter.toFixed(1)} mm`;
 		document.getElementById("width").innerText = `${stats.sizex.toFixed(0)} mm`;
 		document.getElementById("height").innerText = `${stats.sizey.toFixed(0)} mm`;
-		document.getElementById("vert").innerText = `${stats.average.y.toFixed(0)} mm`;
+		document.getElementById("vert").innerText = `${(stats.average.y).toFixed(0)} mm`;
 		document.getElementById("horiz").innerText = `${stats.average.x.toFixed(0)} mm`;
 		document.getElementById("estimated_sigma").innerText = `${(0.5*(stats.stdev.x + stats.stdev.y)).toFixed(0)} mm`;        
 		
