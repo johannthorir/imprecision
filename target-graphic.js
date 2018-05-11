@@ -131,8 +131,6 @@ class TargetGraphic {
 
         this.ctx.strokeStyle = "#ff8822";
         this.ctx.lineWidth = 1.0 / this.scale;
-        let sizex = stats.max.x - stats.min.x;
-        let sizey = stats.max.y - stats.min.y;
         
         if(this.showOverlay) {
             this.strokeCircle(stats.average.x, stats.average.y, stats.averageToCenter);
@@ -145,7 +143,7 @@ class TargetGraphic {
 
             this.ctx.moveTo(stats.maxfrom.x , stats.maxfrom.y);
             this.ctx.lineTo(stats.maxto.x, stats.maxto.y);
-            this.ctx.rect(stats.min.x, stats.min.y, sizex, sizey);
+            this.ctx.rect(stats.min.x, stats.min.y, stats.sizex, stats.sizey);
             this.ctx.stroke();
 
             this.strokeCircle(0, 0, 3.0);
@@ -159,8 +157,8 @@ class TargetGraphic {
             this.ctx.rect(
                 (stats.min.x - this.bulletSize/2), 
                 (stats.min.y - this.bulletSize/2), 
-                (sizex + this.bulletSize), 
-                (sizey + this.bulletSize));
+                (stats.sizex + this.bulletSize), 
+                (stats.sizey + this.bulletSize));
             this.ctx.setLineDash([3/this.scale,3/this.scale]);
             this.ctx.moveTo(stats.average.x, stats.average.y);
             this.ctx.lineTo(0, 0);
@@ -170,16 +168,6 @@ class TargetGraphic {
         }
         this.ctx.restore();
         
-        let line = 240;
-        let dy = 22;
-        this.ctx.font="11pt sans-serif";
-        this.ctx.fillStyle = 'rgba(0,0,0,1)';
-        this.ctx.fillText("Max: ",    10, line    ); this.ctx.fillText(Math.round(stats.maxfrom.distance(stats.maxto))  + "mm", 60, line);
-        this.ctx.fillText("ATC: ",    10, line+=dy); this.ctx.fillText(Math.round(stats.averageToCenter*10)/10          + "mm", 60, line);
-        this.ctx.fillText("Width: ",  10, line+=dy); this.ctx.fillText(Math.round(sizex)                                + "mm", 60, line);
-        this.ctx.fillText("Height: ", 10, line+=dy); this.ctx.fillText(Math.round(sizey)                                + "mm", 60, line);
-        this.ctx.fillText("Vert:",    10, line+=dy); this.ctx.fillText(Math.round(stats.average.y)                      + "mm", 60, line);
-        this.ctx.fillText("Horiz:",   10, line+=dy); this.ctx.fillText(Math.round(stats.average.x)                      + "mm", 60, line);
-        this.ctx.fillText("Sigma:",   10, line+=dy); this.ctx.fillText(Math.round(5*(stats.stdev.x + stats.stdev.y))/10 + "mm", 60, line);
+     
     }
 }

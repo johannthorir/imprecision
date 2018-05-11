@@ -1,13 +1,36 @@
 <!DOCTYPE HTML>
 <html>
-      <head>
-        <style>
-            body,table,td {
+    <head>
+		<meta charset="UTF-8">
+		<style>
+            body {
                 margin: 10px;
                 padding: 10px;
                 font-family : sans-serif;
                 font-size : 11pt;
             }
+
+			.results {
+				vertical-align: top;
+			}
+			
+			#target {
+				display : inline-block;
+				vertical-align: middle;
+			}
+			.stats-table {
+				display : inline-block;
+				border-collapse: collapse;
+				vertical-align: middle;
+			}
+			.stats-table th, .stats-table td {
+				border-bottom : 1px solid rgba(0,0,0,0.1);
+				padding : 4px 10px;
+			}
+			.stats-table .value {
+				min-width : 4em;
+				text-align : right;
+			}
         </style>
         <script src="target-graphic.js"></script>
           
@@ -15,10 +38,23 @@
   
     <body>
         <h1>The Perfect Shot</h2>
-        <p>We have perfect powder, no wind and no human error. This represents just the inherent imprecision of a firearm.</p>
-        <p>Below is my standard 200m target. The grid size is 14 mm. One square MOA is a four by four divisions.</p>
-        <p><canvas width="800" height="600"  id="target"></canvas></p>
-    
+        <p>We have perfect powder, no wind and no human error. This represents just the inherent imprecision of a firearm with a bias of (0,0) and a normally distributed spread with the given sigma.</p>
+		<p>Small groups have an apparent bias while the distribution being drawn from has none.</p>
+		<p>Below is my standard 200m target. The grid size is 14 mm. One square MOA is a four by four divisions.</p>
+        <p class="results">
+			<table class="stats-table">
+				<tr><td>Max:</td>   <td class="value" id="max"></td></tr>
+				<tr><td>ATC:</td>   <td class="value" id="atc"></td></tr>
+				<tr><td>Width:</td> <td class="value" id="width"></td></tr>
+				<tr><td>Height:</td><td class="value" id="height"></td></tr>
+				<tr><td>Vert:</td>  <td class="value" id="vert"></td></tr>
+				<tr><td>Horiz:</td> <td class="value" id="horiz"></td></tr>
+				<tr><td>Sigma:</td> <td class="value" id="estimated_sigma"></td></tr>
+				
+			</table>
+			<canvas width="600" height="600"  id="target"></canvas>
+		</p>
+		<p class="inputs">
         <input type="checkbox" id="show_atc"   onclick="refresh()" /> Show what ATC is for the whole distribution for the given &sigma;</br>
         <input type="checkbox" id="show_probs" onclick="refresh()" /> Show radius for <select id="prob_select" onchange="refresh()">
             <option value="0.5">CEP (50%)</option>
@@ -33,11 +69,14 @@
         Shots: <input type="text" id="group" value="5" size="4" style="text-align:right;" />
         &sigma;: <input type="text" id="sigma" value="18" size="4" style="text-align:right;" onchange="refresh()"/>mm<br />
         Average to center is about 25% more than the sigma.<br/>
-        <p><button onClick="DoGroup(
+        <button onClick="DoGroup(
               parseInt(document.getElementById('group').value),
-              parseFloat(document.getElementById('sigma').value))">Draw a random group</button></p>    
-      </body>
-  <script>
+			  parseFloat(document.getElementById('sigma').value))">Draw a random group</button>
+		</p>    
+	
+	</body>
+	  
+	<script>
     // Normal distribution generator.
     function Normal(mean, stdev) {
         var y2;
@@ -77,8 +116,7 @@
         var max = new shot(0,0);
         var M = new shot(shots[0].x, shots[0].y);
         var Q = new shot(0,0);
-
-        for(var i=0; i<shots.length; i++) {
+		for(var i=0; i<shots.length; i++) {
             var s = shots[i];
             avg.x += s.x / shots.length;
             avg.y += s.y / shots.length;
@@ -89,47 +127,46 @@
 
             if(s.x < min.x) min.x = s.x;
             if(s.x > max.x) max.x = s.x;
-            if(s.y < min.y)    min.y = s.y;
-            if(s.y > max.y)    max.y = s.y;
+            if(s.y < min.y) min.y = s.y;
+            if(s.y > max.y) max.y = s.y;
         }
-
+		
         if(shots.length > 1) {
             Q.x = Math.sqrt(Q.x/(shots.length-1));
-            Q.y = Math.sqrt(Q.y/(shots.length-1));
-        }
+			Q.y = Math.sqrt(Q.y/(shots.length-1));
+		}
         else {
             Q.x = 0;
             Q.y = 0;
         }
 
-        var from;
-        var to;
-        var maxdist = 0;
-        var averageToCenter = 0;
-        for(var i=0; i<(shots.length-1); i++) {
-            for(var j=i+1; j<shots.length; j++) {
-                var d = shots[i].distance(shots[j]);
+        let from = 0;
+        let to = 0;
+        let maxdist = 0;
+        for(let i=0; i<(shots.length-1); i++) {
+            for(let j=i+1; j<shots.length; j++) {
+                let d = shots[i].distance(shots[j]);
                 if(d > maxdist) {
                     maxdist = d;
                     from = i;
                     to   = j;
                 }
             }
-        }
+		}
 
-        for(var i=0; i<shots.length; i++) averageToCenter += shots[i].distance(avg)/shots.length;
-        return {
+		let atc = shots.reduce((total, shot) => { return total + shot.distance(avg)}, 0) / shots.length;
+		return {
             average         : avg,
             maxfrom         : shots[from],
             maxto           : shots[to],
-            averageToCenter : averageToCenter,
+            averageToCenter : atc,
             min             : min,
             max             : max, 
-            stdev           : Q
-        };
+            stdev           : Q,
+			sizex           : max.x - min.x,
+			sizey           : max.y - min.y
+		}
     }
-
-
 
     var shots = [];
 
@@ -137,18 +174,27 @@
         if(tgt == null) tgt = new TargetGraphic('target');
         tgt.setGridSize(14);
         tgt.setScale(4);
-        tgt.setCenter(400.5, 300.5);
+        tgt.setCenter(300.5, 300.5);
         tgt.makeTarget();
-        let sigma = parseFloat(document.getElementById('sigma').value);
         let prob  = parseFloat(document.getElementById('prob_select').value);
+        let sigma = parseFloat(document.getElementById('sigma').value);
         tgt.showOverlay = document.getElementById('show_stats').checked;
 
         if(document.getElementById('show_atc').checked)  tgt.drawATC(sigma);
         if(document.getElementById('show_probs').checked) tgt.drawProbabilities(sigma, prob)
 
         for(var i=0; i<shots.length; i++) tgt.drawBulletHole(shots[i].x, shots[i].y);
-        tgt.drawStats(calculateStats(shots)) 
-    }
+		let stats = calculateStats(shots);
+		document.getElementById("max").innerText = `${stats.maxfrom.distance(stats.maxto).toFixed(0)} mm`;
+		document.getElementById("atc").innerText = `${stats.averageToCenter.toFixed(1)} mm`;
+		document.getElementById("width").innerText = `${stats.sizex.toFixed(0)} mm`;
+		document.getElementById("height").innerText = `${stats.sizey.toFixed(0)} mm`;
+		document.getElementById("vert").innerText = `${stats.average.y.toFixed(0)} mm`;
+		document.getElementById("horiz").innerText = `${stats.average.x.toFixed(0)} mm`;
+		document.getElementById("estimated_sigma").innerText = `${(0.5*(stats.stdev.x + stats.stdev.y)).toFixed(0)} mm`;        
+		
+		tgt.drawStats(stats); 
+	}
 
         // Generate a group
     function DoGroup(count, sigma) {
@@ -163,6 +209,6 @@
     }
 
 
-      DoGroup(parseInt(document.getElementById('group').value), parseFloat(document.getElementById('sigma').value));
-  </script>
+    DoGroup(parseInt(document.getElementById('group').value), parseFloat(document.getElementById('sigma').value));
+  	</script>
 </html>
