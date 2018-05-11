@@ -6,7 +6,6 @@ class shot {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-
     }
 
     distance(other) {
@@ -19,8 +18,11 @@ class shot {
 class TargetGraphic {
     constructor(element) {
         this.target = document.getElementById(element);
-        this.ctx = this.target.getContext('2d');
+        this.ctx = this.target.getContext('2d');    
+        this.scale = 5.0;
+        this.gridSize = 7.0;
         this.bulletSize = 6.0; // mm
+        this.mainColor = '#7080A1';
     }
     set showOverlay(show) { this._showOverlay = show; }
     get showOverlay() { return this._showOverlay; }
@@ -32,33 +34,37 @@ class TargetGraphic {
     clear() { this.ctx.clearRect(0, 0, this.target.width, this.target.height); }
     
     drawGrid() {
-        
-        this.ctx.strokeStyle = '#0A50A1';
-        this.ctx.lineWidth = 0.5;
-        
-        let grid = this.gridSize * this.scale;
+        this.ctx.save();
+        this.ctx.strokeStyle = this.mainColor;
+        this.ctx.translate(this.cx, this.cy);        
+        this.ctx.scale(this.scale, this.scale);
+        this.ctx.lineWidth = 1.25 / this.scale;
+        let grid = 
 
         // draws fine line grid.
         this.ctx.beginPath();
         for(let i=-5; i<=5; i++) {
-            this.ctx.moveTo(this.cx - 5*grid, this.cy + i*grid);
-            this.ctx.lineTo(this.cx + 5*grid, this.cy + i*grid);
-    
-            this.ctx.moveTo(this.cx + i*grid, this.cy - 5*grid);
-            this.ctx.lineTo(this.cx + i*grid, this.cy + 5*grid);
+            this.ctx.moveTo( 5*this.gridSize, i*this.gridSize);
+            this.ctx.lineTo(-5*this.gridSize, i*this.gridSize);
+            this.ctx.moveTo( i*this.gridSize,-5*this.gridSize);
+            this.ctx.lineTo( i*this.gridSize, 5*this.gridSize);
         }
         this.ctx.stroke();
+        this.ctx.restore();
     }
 
     drawCenter(fillStyle, size) {
+        this.ctx.save();
+        this.ctx.translate(this.cx, this.cy);
+        this.ctx.scale(this.scale, this.scale);
+        this.ctx.rotate(Math.PI / 4);
+
         this.ctx.fillStyle = fillStyle;
+        
         this.ctx.beginPath();
-        this.ctx.moveTo(this.cx,        this.cy - size);
-        this.ctx.lineTo(this.cx + size, this.cy       );
-        this.ctx.lineTo(this.cx,        this.cy + size);
-        this.ctx.lineTo(this.cx - size, this.cy       );
-        this.ctx.lineTo(this.cx,        this.cy - size);
+        this.ctx.rect(-size/2,-size/2,size,size);
         this.ctx.fill();
+        this.ctx.restore();
     }
 
     setGridSize(gridSize) { this.gridSize = gridSize; }
@@ -68,16 +74,16 @@ class TargetGraphic {
 
     makeTarget() {
         this.clear();
-        this.drawGrid();
+        this.drawGrid();    
         let grid = this.gridSize * this.scale;
-        this.drawCenter('#0A50A1', 2 * grid / Math.sqrt(2));
-        this.drawCenter('#FFFFFF', grid/Math.sqrt(2));
+        this.drawCenter(this.mainColor, this.gridSize * 2);
+        this.drawCenter('#FFFFFF', this.gridSize);
     }
 
     // Draw the probablity circle for the selected probability
     drawProbabilities(sigma, probability) {
-        this.ctx.fillStyle="rgba(50,0,0, 0.08)";
-        this.ctx.strokeStyle="rgba(50,0,0,0.5)";
+        this.ctx.fillStyle   = "rgba(50,0,0, 0.08)";
+        this.ctx.strokeStyle = "rgba(50,0,0,0.5)";
         this.ctx.beginPath();
         this.ctx.arc(this.cx, this.cy, this.scale * sigma * this.radiusFromProbability(probability), 0, Math.PI*2, true);
         this.ctx.fill();
@@ -86,15 +92,19 @@ class TargetGraphic {
 
     // draw a bullet hole
     drawBulletHole(x, y) {
+        this.ctx.save();
+        this.ctx.translate(this.cx, this.cy);
+        this.ctx.scale(this.scale, this.scale);
         this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
         this.ctx.beginPath();
-        this.ctx.arc(this.cx + x * this.scale, this.cy + y * this.scale, 0.5 * this.bulletSize * this.scale, 0, Math.PI*2, true)
+        this.ctx.arc(x, y, 0.5 * this.bulletSize, 0, Math.PI*2, true)
         this.ctx.fill();
 
         this.ctx.fillStyle = 'rgba(0,0,0,0.8)';
         this.ctx.beginPath();
-        this.ctx.arc(this.cx + x * this.scale, this.cy + y*this.scale, 0.4 * this.bulletSize * this.scale, 0, Math.PI*2, true)
+        this.ctx.arc(x, y, 0.4 * this.bulletSize, 0, Math.PI*2, true)
         this.ctx.fill();
+        this.ctx.restore();
     }
 
     strokeCircle(x,y, radius) {
@@ -104,52 +114,63 @@ class TargetGraphic {
     }
 
     drawATC(sigma) {
+        this.ctx.save();
+        this.ctx.translate(this.cx, this.cy);
+        this.ctx.scale(this.scale, this.scale);
         this.ctx.strokeStyle = "#20FF20";
-        this.ctx.lineWidth = 1.0;
-        this.strokeCircle(this.cx, this.cy, sigma * 1.253314137 * this.scale);
+        this.ctx.lineWidth = 1.0/this.scale;
+        this.strokeCircle(0, 0, sigma * 1.253314137);
+        this.ctx.restore();
     }
 
     // draw the statistics for a group.
     drawStats(stats)  {
-        this.ctx.strokeStyle = "#ff8822";
-        this.ctx.lineWidth = 1.0;
+        this.ctx.save();
+        this.ctx.translate(this.cx, this.cy);
+        this.ctx.scale(this.scale, this.scale);
 
-        let x = this.cx + stats.average.x * this.scale;
-        let y = this.cy + stats.average.y * this.scale;
+        this.ctx.strokeStyle = "#ff8822";
+        this.ctx.lineWidth = 1.0 / this.scale;
         let sizex = stats.max.x - stats.min.x;
         let sizey = stats.max.y - stats.min.y;
         
         if(this.showOverlay) {
-            this.strokeCircle(x, y, stats.averagegToCenter*this.scale);
+            this.strokeCircle(stats.average.x, stats.average.y, stats.averageToCenter);
 
             this.ctx.beginPath();
-            this.ctx.moveTo(x - 3*this.scale, y);
-            this.ctx.lineTo(x + 3*this.scale, y);
-            this.ctx.moveTo(x, y - 3*this.scale);
-            this.ctx.lineTo(x, y + 3*this.scale);
+            this.ctx.moveTo(stats.average.x - this.bulletSize/2, stats.average.y);
+            this.ctx.lineTo(stats.average.x + this.bulletSize/2, stats.average.y);
+            this.ctx.moveTo(stats.average.x, stats.average.y - this.bulletSize/2);
+            this.ctx.lineTo(stats.average.x, stats.average.y + this.bulletSize/2);
 
-            this.ctx.moveTo(this.cx + stats.maxfrom.x * this.scale, this.cy + stats.maxfrom.y * this.scale);
-            this.ctx.lineTo(this.cx + stats.maxto.x * this.scale, this.cy + stats.maxto.y * this.scale);
-            this.ctx.rect(this.cx + stats.min.x*this.scale, this.cy + stats.min.y * this.scale, sizex * this.scale, sizey * this.scale);
+            this.ctx.moveTo(stats.maxfrom.x , stats.maxfrom.y);
+            this.ctx.lineTo(stats.maxto.x, stats.maxto.y);
+            this.ctx.rect(stats.min.x, stats.min.y, sizex, sizey);
             this.ctx.stroke();
 
-            this.strokeCircle(this.cx, this.cy, 3*this.scale);
-            this.strokeCircle(this.cx, this.xy, 1.5*this.scale);
+            this.strokeCircle(0, 0, 3.0);
+            this.strokeCircle(0, 0, 1.5);
             
             if(!this.ctx.setLineDash) this.ctx.setLineDash = function () {}
 
             this.ctx.save();
 
             this.ctx.beginPath();
-            this.ctx.rect(this.cx + stats.min.x*this.scale - 4*this.scale, this.cy + stats.min.y * this.scale - 4*this.scale, sizex * this.scale + 8*this.scale, sizey * this.scale + 8*this.scale);
-            this.ctx.setLineDash([2,2]);
-            this.ctx.moveTo(x, y);
-            this.ctx.lineTo(this.cx ,this.cy);
+            this.ctx.rect(
+                (stats.min.x - this.bulletSize/2), 
+                (stats.min.y - this.bulletSize/2), 
+                (sizex + this.bulletSize), 
+                (sizey + this.bulletSize));
+            this.ctx.setLineDash([3/this.scale,3/this.scale]);
+            this.ctx.moveTo(stats.average.x, stats.average.y);
+            this.ctx.lineTo(0, 0);
             this.ctx.stroke();
 
             this.ctx.restore();
         }
-        let line = 60;
+        this.ctx.restore();
+        
+        let line = 240;
         let dy = 22;
         this.ctx.font="11pt sans-serif";
         this.ctx.fillStyle = 'rgba(0,0,0,1)';

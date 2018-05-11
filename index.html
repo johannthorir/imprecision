@@ -16,7 +16,7 @@
 	<body>
 		<h1>The Perfect Shot</h2>
     	<p>We have perfect powder, no wind and no human error. This represents just the inherent imprecision of a firearm.</p>
-		<p>Below is my standard 300m target. The grid size is 21 mm.</p>
+		<p>Below is my standard 100m target. The grid size is 7 mm.</p>
     	<p><canvas width="800" height="600"  id="target"></canvas></p>
 	
 		<input type="checkbox" id="show_atc"   onclick="refresh()" /> Show what ATC is for the whole distribution for the given &sigma;</br>
@@ -135,8 +135,8 @@
 
 	function refresh() {
 		if(tgt == null) tgt = new TargetGraphic('target');
-		tgt.setGridSize(21);
-		tgt.setScale(2.5);
+		tgt.setGridSize(7);
+		tgt.setScale(5);
 		tgt.setCenter(400.5, 300.5);
 		tgt.makeTarget();
 		let sigma = parseFloat(document.getElementById('sigma').value);
@@ -147,9 +147,7 @@
 		if(document.getElementById('show_probs').checked) tgt.drawProbabilities(sigma, prob)
 
 		for(var i=0; i<shots.length; i++) tgt.drawBulletHole(shots[i].x, shots[i].y);
-		if(tgt.showOverlay) {
-			tgt.drawStats(calculateStats(shots))
-		}   
+		tgt.drawStats(calculateStats(shots)) 
 	}
 
 		// Generate a group
