@@ -1,0 +1,3 @@
+# imprecision
+
+Dispersion of impacts.
