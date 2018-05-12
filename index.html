@@ -1,46 +1,91 @@
-<!DOCTYPE HTML>
+<!DOCTYPE htmlL
+
 <html>
     <head>
 		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, maximum-scale=1, user-scalable=no">
 		<link rel="stylesheet" href="main.css" />
+		<link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
+		<link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
+		<script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
 		<script src="target-graphic.js"></script>
 		<script src="main.js"></script>
     </head>
     <body>
-        <h1>The Perfect Shot</h2>
-        <p>We have perfect powder, no wind and no human error. This represents just the inherent imprecision of a firearm with a bias of (0,0) and a normally distributed spread with the given sigma.</p>
-		<p>Small groups have an apparent bias while the distribution being drawn from has none.</p>
-		<p>Below is my standard 200m target. The grid size is 14 mm. One square MOA is a four by four divisions.</p>
-        <p class="results">
-			<table class="stats-table">
-				<tr><td>Max:</td>   <td class="value" id="max"></td></tr>
-				<tr><td>ATC:</td>   <td class="value" id="atc"></td></tr>
-				<tr><td>Width:</td> <td class="value" id="width"></td></tr>
-				<tr><td>Height:</td><td class="value" id="height"></td></tr>
-				<tr><td>Vertical bias:</td>  <td class="value" id="vert"></td></tr>
-				<tr><td>Horizontal bias:</td> <td class="value" id="horiz"></td></tr>
-				<tr><td>Estimated &sigma;:</td> <td class="value" id="estimated-sigma"></td></tr>
-				
-			</table>
-			<canvas width="600" height="600"  id="target"></canvas>
-		</p>
-		<p class="inputs">
-        <input type="checkbox" id="show-atc" /> Show what ATC is for the whole distribution for the given &sigma;</br>
-		<input type="checkbox" id="show-probs" /> Show radius for <select id="prob-select">
-            <option value="0.5">CEP (50%)</option>
-            <option value="0.95">R95</option>
-            <option value="0.99">99%</option>
-            <option value="0.999" selected>99.9%</option>
-            <option value="0.9999">99.99%</option>
-            <option value="0.99999">99.999%</option>
-            <option value="0.999999">99.9999%</option>
-        </select> probability of any given shot hit. <br/>
-        <input type="checkbox" id="show-stats" checked/> Show group statistics<br />
-        Shots: <input type="text" id="group" value="5" size="4" style="text-align:right;" />
-        &sigma;: <input type="text" id="sigma" value="18" size="4" style="text-align:right;" />mm<br />
-        Average to center is about 25% more than the sigma.<br/>
-        <button id="draw-group">Draw a random group</button>
-		</p>    
+		<ons-page>
+			<ons-toolbar><div class="center">The Perfect Shot</div></ons-toolbar>
+			<p>We have perfect powder, no wind and no human error. This represents just the inherent imprecision of a firearm with a bias of (0,0) and a normally distributed spread with the given sigma.</p>
+			<p>Small groups have an apparent bias while the distribution being drawn from has none.</p>
+			<p>Below is my standard 200m target. The grid size is 14 mm. One square MOA is a four by four divisions.</p>
+			<p>Average to center is about 25% more than the sigma.</p>
+			<ons-list>
+					<ons-list-item>
+						<div>Show ATC for &sigma;</div>
+						<div class="right"><ons-switch checked id="show-atc"></ons-switch></div>
+					</ons-list-item>
+					<ons-list-item>
+						<div>Show group stats</div>
+						<div class="right"><ons-switch checked id="show-stats"></ons-switch>		</div>
+					</ons-list-item>
+					<ons-list-item>
+						<div>Distribution sigma:</div>
+						<div class="right" style="vertical-align:baseline">
+							<ons-input type="text" id="sigma" value="18" size="4" class="right"></ons-input>&nbsp;mm
+						</div>
+					</ons-list-item>
+					<ons-list-item>
+						<div>Group size</div>
+						<div class="right" style="vertical-align:baseline">
+							<ons-input type="text" id="group" value="5" size="4" class="right"></ons-input>&nbsp;shots
+						</div>
+					</ons-list-item>
+					<ons-list-item>
+						<div>Probability radius:</div>
+						<div class="right">
+							<ons-select id="prob-select">
+								<option value="0.0" selected>off</option>
+								<option value="0.5">CEP (50%)</option>
+								<option value="0.95">R95</option>
+								<option value="0.99">99%</option>
+								<option value="0.999">99.9%</option>
+								<option value="0.9999">99.99%</option>
+								<option value="0.99999">99.999%</option>
+								<option value="0.999999">99.9999%</option>
+							</ons-select>
+						</div>
+					</ons-list-item>
+				</ons-list>
 	
+			<canvas id="target"></canvas>
+			<p class="center"><ons-button id="draw-group">Draw a random group</ons-button></p>
+			<p class="results center">
+				<table class="stats-table">
+					<tr><td>Max:</td>   <td class="value" id="max"></td></tr>
+					<tr><td>ATC:</td>   <td class="value" id="atc"></td></tr>
+					<tr><td>Width:</td> <td class="value" id="width"></td></tr>
+					<tr><td>Height:</td><td class="value" id="height"></td></tr>
+					<tr><td>Vertical bias:</td>  <td class="value" id="vert"></td></tr>
+					<tr><td>Horizontal bias:</td> <td class="value" id="horiz"></td></tr>
+					<tr><td>Estimated &sigma;:</td> <td class="value" id="estimated-sigma"></td></tr>
+					
+				</table>
+			</p>
+			
+		
+			<script>
+				ons.ready(function() {
+					console.log("Ons ready");
+					document.getElementById('draw-group' ).addEventListener('click', generateNewGroup);
+					document.getElementById('show-atc'   ).addEventListener('change', readChangesAndRefresh);
+					document.getElementById('show-stats' ).addEventListener('change', readChangesAndRefresh);
+					document.getElementById('prob-select').addEventListener('change', readChangesAndRefresh);
+					document.getElementById('sigma'      ).addEventListener('change', readChangesAndRefresh); 
+
+					generateNewGroup();
+				});
+				
+				ons.orientation.on('change', refreshGraphics);
+			</script>
+			</ons-page>
 	</body>
 </html>

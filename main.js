@@ -86,32 +86,41 @@ function calculateStats(shots) {
 
 var shots = [];
 var tgt = null;
-
+var showStats = true;
+var showAtc = false;
 
 function refreshGraphics() {
     if(tgt == null) tgt = new TargetGraphic('target');
+    
+    var dim = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+    console.log(dim);
     tgt.setGridSize(14);
-    tgt.setScale(4);
-    tgt.setCenter(300.5, 300.5);
+    tgt.target.width  = dim;
+    tgt.target.height = dim;
+    tgt.setScale(tgt.target.width / (11 * 14)); 
+    tgt.setCenter(tgt.target.width / 2, tgt.target.height / 2);
+    //tgt.target.height = tgt.target.width;
+
     tgt.makeTarget();
     let prob  = parseFloat(document.getElementById('prob-select').value);
     let sigma = parseFloat(document.getElementById('sigma').value);
-    tgt.showOverlay = document.getElementById('show-stats').checked;
+    tgt.showOverlay = showStats; //document.getElementById('show-stats').checked;
 
-    if(document.getElementById('show-atc').checked)  tgt.drawATC(sigma);
-    if(document.getElementById('show-probs').checked) tgt.drawProbabilities(sigma, prob)
-
-    for(var i=0; i<shots.length; i++) tgt.drawBulletHole(shots[i].x, shots[i].y);
-    let stats = calculateStats(shots);
-    document.getElementById("max").innerText = `${stats.maxfrom.distance(stats.maxto).toFixed(0)} mm`;
-    document.getElementById("atc").innerText = `${stats.averageToCenter.toFixed(1)} mm`;
-    document.getElementById("width").innerText = `${stats.sizex.toFixed(0)} mm`;
-    document.getElementById("height").innerText = `${stats.sizey.toFixed(0)} mm`;
-    document.getElementById("vert").innerText = `${(stats.average.y).toFixed(0)} mm`;
-    document.getElementById("horiz").innerText = `${stats.average.x.toFixed(0)} mm`;
-    document.getElementById("estimated-sigma").innerText = `${(0.5*(stats.stdev.x + stats.stdev.y)).toFixed(0)} mm`;        
-    
-    tgt.drawStats(stats); 
+    if(showAtc)  tgt.drawATC(sigma);
+    if(prob > 0) tgt.drawProbabilities(sigma, prob)
+    if(shots.length > 0) {
+        for(var i=0; i<shots.length; i++) tgt.drawBulletHole(shots[i].x, shots[i].y);
+        let stats = calculateStats(shots);
+        document.getElementById("max").innerText = `${stats.maxfrom.distance(stats.maxto).toFixed(0)} mm`;
+        document.getElementById("atc").innerText = `${stats.averageToCenter.toFixed(1)} mm`;
+        document.getElementById("width").innerText = `${stats.sizex.toFixed(0)} mm`;
+        document.getElementById("height").innerText = `${stats.sizey.toFixed(0)} mm`;
+        document.getElementById("vert").innerText = `${(stats.average.y).toFixed(0)} mm`;
+        document.getElementById("horiz").innerText = `${stats.average.x.toFixed(0)} mm`;
+        document.getElementById("estimated-sigma").innerText = `${(0.5*(stats.stdev.x + stats.stdev.y)).toFixed(0)} mm`;        
+        
+        tgt.drawStats(stats); 
+    }
 }
 
 // Generate a group
@@ -127,12 +136,12 @@ function generateNewGroup() {
     refreshGraphics();
 }
 
+function readChangesAndRefresh() {
+    showStats = document.getElementById('show-stats').checked;
+    showAtc   = document.getElementById('show-atc').checked;
+    refreshGraphics();
+}
+
 window.addEventListener("DOMContentLoaded", function(event) {
-    document.getElementById('draw-group' ).addEventListener('click', generateNewGroup);
-    document.getElementById('show-atc'   ).addEventListener('change', refreshGraphics);
-    document.getElementById('show-stats' ).addEventListener('change', refreshGraphics);
-    document.getElementById('show-probs' ).addEventListener('change', refreshGraphics);
-    document.getElementById('prob-select').addEventListener('change', refreshGraphics);
-    document.getElementById('sigma'      ).addEventListener('change', refreshGraphics);
-    generateNewGroup();
 });
+

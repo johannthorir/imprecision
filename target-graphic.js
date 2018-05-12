@@ -18,9 +18,12 @@ class shot {
 class TargetGraphic {
     constructor(element) {
         this.target = document.getElementById(element);
+        this.cx = (this.target.offsetWidth + 1)/2;
+        this.cy = this.cx; // (this.target.offsetHeight + 1)/2;
+
         this.ctx = this.target.getContext('2d');    
         this.scale = 4.0;
-        this.gridSize = 15.0;
+        this.gridSize = 14.0;
         this.bulletSize = 6.0; // mm
         this.mainColor = '#7080A1';
     }
@@ -31,7 +34,9 @@ class TargetGraphic {
         return Math.sqrt(-2 * Math.log(1 - probability))
     }
 
-    clear() { this.ctx.clearRect(0, 0, this.target.width, this.target.height); }
+    clear() {
+        this.ctx.clearRect(0, 0, this.target.width, this.target.height);
+    }
     
     drawGrid() {
         this.ctx.save();
